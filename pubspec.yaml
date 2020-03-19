@@ -1,0 +1,16 @@
+name: dart_yaml
+description: A sample command-line application.
+# version: 1.0.0
+# homepage: https://www.example.com
+
+environment:
+  sdk: '>=2.7.0 <3.0.0'
+
+dependencies:
+  yaml: ^2.2.0
+  ansicolor: ^1.0.2
+  indent: ^1.0.0+2
+
+dev_dependencies:
+  pedantic: ^1.8.0
+  test: ^1.6.0
