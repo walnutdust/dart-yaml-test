@@ -18,7 +18,8 @@ void testYAMLDirectory(String directoryPath) async {
     'ValidFailure': [],
     'ValidIncorrect': [],
     'InvalidSuccess': [],
-    'InvalidFailure': []
+    'InvalidFailure': [],
+    'JSONError': [],
   };
 
   await paths.forEach((path) => testYAML(results, path));
@@ -35,7 +36,8 @@ void printResults(Map<String, List> results) {
   print('\tError while Parsing:\t${results['ValidFailure'].length ?? 0}\n');
   print('Invalid YAML:');
   print('\tSuccessful Recognition:\t${results['InvalidSuccess'].length ?? 0}');
-  print('\tFailure to Recognize:\t${results['InvalidFailure'].length ?? 0}');
+  print('\tFailure to Recognize:\t${results['InvalidFailure'].length ?? 0}\n');
+  print('JSON Errors:\t${results['JSONError'].length ?? 0}');
 }
 
 void printErrors(Map<String, List> results) {
@@ -81,6 +83,15 @@ void printErrors(Map<String, List> results) {
     print(orangePen('\tParsed it as:'));
     print('''${testInfo['actualOutputJSON']}\n\n'''.indent(8));
   });
+
+  print('\n\n');
+
+  results['JSONError'].asMap().forEach((index, testInfo) {
+    print(redHighlight(' FAIL ') +
+        '  ${testInfo['testCase']} - ${testInfo['description']}');
+    print(redPen(
+        '\t#${index + 1} - Input JSON could not be parsed.\n\n'.indent(8)));
+  });
 }
 
 /// Gets the test folders in the larger test directory.
@@ -124,26 +135,25 @@ void testYAML(Map<String, List> results, String path) {
     description = '';
   }
 
+  var expectedOutputJSON = '';
+
+  try {
+    // The "truth" for the test should come from `in.json`.
+    if (File('$path/in.json').existsSync()) {
+      output = File('$path/in.json').readAsStringSync();
+      expectedOutputJSON = json.encode([json.decode(output)]);
+    }
+  } catch (err) {
+    updateResults(results, 'JSONError',
+        {'testCase': testCase, 'err': err, 'description': description});
+  }
+
   try {
     var input = inputFile.readAsStringSync();
 
     // Use loadYAMLStream because some tests have multiple documents.
     var inputYAML = loadYamlStream(input);
     var actualOutputJSON = json.encode(inputYAML);
-
-    var expectedOutputJSON = '';
-
-    // Handles the various possibilities for "truth" of the test.
-    if (File('$path/out.yaml').existsSync()) {
-      output = File('$path/out.yaml').readAsStringSync();
-      expectedOutputJSON = json.encode(loadYamlStream(output));
-    } else if (File('$path/emit.yaml').existsSync()) {
-      output = File('$path/emit.yaml').readAsStringSync();
-      expectedOutputJSON = json.encode(loadYamlStream(output));
-    } else if (File('$path/in.json').existsSync()) {
-      output = File('$path/in.json').readAsStringSync();
-      expectedOutputJSON = json.encode([json.decode(output)]);
-    }
 
     var testInformation = {
       'testCase': testCase,
